@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>演算法刷題追蹤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #151820;
+    --surface2:  #1c2030;
+    --border:    #252a3a;
+    --text:      #dde2f0;
+    --muted:     #55607a;
+    --accent:    #5b8dee;
+    --green:     #4ade80;
+    --amber:     #fbbf24;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans TC', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(13,15,20,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px 12px;
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 14px; font-weight: 700;
+    color: var(--accent);
+    letter-spacing: .04em;
+  }
+  .save-badge {
+    font-family: var(--mono);
+    font-size: 11px; color: var(--green);
+    opacity: 0; transition: opacity .4s;
+  }
+  .save-badge.show { opacity: 1; }
+
+  /* overall bar */
+  .overall {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .overall-label { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .overall-track {
+    flex: 1; height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden;
+  }
+  .overall-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, #3b6fd4, #5b8dee, #7cb3ff);
+    transition: width .5s ease;
+  }
+  .overall-pct { font-family: var(--mono); font-size: 12px; color: var(--accent); min-width: 36px; text-align: right; }
+
+  /* category pills */
+  .cat-pills {
+    display: flex; gap: 6px; overflow-x: auto;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .cat-pills::-webkit-scrollbar { display: none; }
+  .pill {
+    padding: 5px 12px; border-radius: 99px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); cursor: pointer; white-space: nowrap;
+    transition: all .15s;
+  }
+  .pill:hover { color: var(--text); border-color: var(--muted); }
+  .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── Main ── */
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+
+  /* controls row */
+  .controls {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .count-label { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .opt-toggle {
+    font-size: 11px; font-family: var(--mono);
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--amber); padding: 4px 10px; border-radius: 99px; cursor: pointer;
+    transition: all .15s;
+  }
+  .opt-toggle:hover { border-color: var(--amber); }
+  .opt-toggle.on { background: rgba(251,191,36,.12); border-color: var(--amber); }
+
+  /* cat section */
+  .cat-section { margin-bottom: 28px; }
+  .cat-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .cat-badge {
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 6px;
+  }
+  .cat-prog { flex: 1; }
+  .cat-prog-track {
+    height: 3px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin-bottom: 2px;
+  }
+  .cat-prog-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+  .cat-prog-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  /* problem row */
+  .prob-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    margin-bottom: 5px;
+    transition: opacity .2s, border-color .2s;
+    cursor: default;
+  }
+  .prob-row:hover { border-color: #2d3450; }
+  .prob-row.done { opacity: .45; }
+  .prob-row.optional {
+    border-style: dashed; background: transparent;
+  }
+
+  /* check btn */
+  .check-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--border); background: transparent;
+    cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .18s;
+  }
+  .check-btn:hover { border-color: var(--green); }
+  .check-btn.checked { background: var(--green); border-color: var(--green); }
+  .check-btn svg { display: none; }
+  .check-btn.checked svg { display: block; }
+
+  /* prob info */
+  .prob-info { flex: 1; min-width: 0; }
+  .prob-title {
+    font-size: 13px; color: var(--text); line-height: 1.4;
+    display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap;
+  }
+  .prob-num { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .prob-title-text { }
+  .done .prob-title-text { text-decoration: line-through; color: var(--muted); }
+  .prob-meta {
+    display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap;
+  }
+  .done-date { font-family: var(--mono); font-size: 10px; color: var(--green); }
+  .note-preview { font-size: 10px; color: var(--muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* tags */
+  .opt-tag {
+    font-size: 10px; font-family: var(--mono);
+    color: var(--amber); background: rgba(251,191,36,.1);
+    border: 1px solid rgba(251,191,36,.2);
+    padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+  }
+
+  /* note btn */
+  .note-btn {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: transparent; border: 1px solid transparent;
+    cursor: pointer; font-size: 14px; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s; flex-shrink: 0;
+  }
+  .note-btn:hover { border-color: var(--border); color: var(--text); }
+  .note-btn.has-note { color: var(--amber); }
+
+  /* ── Note Modal ── */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .modal-backdrop.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface2); border-radius: 16px 16px 0 0;
+    border: 1px solid var(--border); border-bottom: none;
+    padding: 20px; width: 100%; max-width: 640px;
+    transform: translateY(20px); transition: transform .25s ease;
+  }
+  .modal-backdrop.open .modal { transform: translateY(0); }
+  .modal-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .modal-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .modal textarea {
+    width: 100%; height: 160px; resize: none;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; font-family: var(--mono);
+    font-size: 12px; color: var(--text); outline: none;
+    transition: border-color .15s; line-height: 1.7;
+  }
+  .modal textarea:focus { border-color: var(--accent); }
+  .modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-save {
+    flex: 1; background: var(--accent); border: none;
+    color: #fff; padding: 10px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-save:hover { background: #6b9ef8; }
+  .btn-cancel {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 10px; border-radius: 10px;
+    font-size: 13px; cursor: pointer; transition: all .15s;
+  }
+  .btn-cancel:hover { color: var(--text); }
+
+  /* category colors */
+  .c-bt { color: #60a5fa; background: rgba(96,165,250,.15); }
+  .c-bk { color: #c084fc; background: rgba(192,132,252,.15); }
+  .c-gr { color: #4ade80; background: rgba(74,222,128,.15); }
+  .c-ms { color: #fb923c; background: rgba(251,146,60,.15); }
+  .c-dp { color: #f87171; background: rgba(248,113,113,.15); }
+  .c-gp { color: #22d3ee; background: rgba(34,211,238,.15); }
+  .fill-bt { background: #60a5fa; }
+  .fill-bk { background: #c084fc; }
+  .fill-gr { background: #4ade80; }
+  .fill-ms { background: #fb923c; }
+  .fill-dp { background: #f87171; }
+  .fill-gp { background: #22d3ee; }
+
+  .footer {
+    text-align: center; margin-top: 32px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">algo_tracker.exe</div>
+    <div class="save-badge" id="saveBadge">已儲存 ✓</div>
+  </div>
+  <div class="overall">
+    <span class="overall-label">整體必做</span>
+    <div class="overall-track"><div class="overall-fill" id="overallFill" style="width:0%"></div></div>
+    <span class="overall-pct" id="overallPct">0%</span>
+  </div>
+  <div class="cat-pills" id="catPills"></div>
+</header>
+
+<main>
+  <div class="controls">
+    <span class="count-label" id="countLabel"></span>
+    <button class="opt-toggle on" id="optToggle">▲ 隱藏選做</button>
+  </div>
+  <div id="list"></div>
+  <div class="footer">資料存於本機 localStorage · 每次修改自動儲存</div>
+</main>
+
+<!-- Note Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub">筆記（題型 / 核心想法 / 卡住點）</div>
+    <textarea id="modalTextarea" placeholder="題型：&#10;核心想法：&#10;關鍵技巧：&#10;我卡住的地方："></textarea>
+    <div class="modal-btns">
+      <button class="btn-save" id="btnSave">儲存</button>
+      <button class="btn-cancel" id="btnCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PROBLEMS = [
+  // 二元樹
+  { id:"bt01", cat:"二元樹", pri:"必做", no:null,  title:"遞迴三序遍歷（前/中/後）" },
+  { id:"bt02", cat:"二元樹", pri:"必做", no:null,  title:"迭代三序遍歷" },
+  { id:"bt03", cat:"二元樹", pri:"必做", no:102,   title:"層序遍歷 BFS" },
+  { id:"bt04", cat:"二元樹", pri:"必做", no:226,   title:"翻轉二元樹" },
+  { id:"bt05", cat:"二元樹", pri:"必做", no:101,   title:"對稱二元樹" },
+  { id:"bt06", cat:"二元樹", pri:"必做", no:104,   title:"最大深度" },
+  { id:"bt07", cat:"二元樹", pri:"必做", no:111,   title:"最小深度" },
+  { id:"bt08", cat:"二元樹", pri:"必做", no:112,   title:"路徑總和" },
+  { id:"bt09", cat:"二元樹", pri:"必做", no:106,   title:"中序+後序構造二叉樹" },
+  { id:"bt10", cat:"二元樹", pri:"必做", no:617,   title:"合併兩棵樹" },
+  { id:"bt11", cat:"二元樹", pri:"必做", no:98,    title:"驗證 BST" },
+  { id:"bt12", cat:"二元樹", pri:"必做", no:236,   title:"最近公共祖先 LCA" },
+  { id:"bt13", cat:"二元樹", pri:"必做", no:235,   title:"BST 最近公共祖先" },
+  { id:"bt14", cat:"二元樹", pri:"必做", no:701,   title:"BST 插入" },
+  { id:"bt15", cat:"二元樹", pri:"必做", no:450,   title:"BST 刪除" },
+  { id:"bt16", cat:"二元樹", pri:"必做", no:108,   title:"有序陣列 → BST" },
+  { id:"bt17", cat:"二元樹", pri:"選做", no:110,   title:"平衡二元樹" },
+  { id:"bt18", cat:"二元樹", pri:"選做", no:257,   title:"所有路徑" },
+  { id:"bt19", cat:"二元樹", pri:"選做", no:538,   title:"BST 轉累加樹" },
+  // 回溯
+  { id:"bk01", cat:"回溯",   pri:"必做", no:77,    title:"組合" },
+  { id:"bk02", cat:"回溯",   pri:"必做", no:216,   title:"組合總和 III" },
+  { id:"bk03", cat:"回溯",   pri:"必做", no:39,    title:"組合總和" },
+  { id:"bk04", cat:"回溯",   pri:"必做", no:40,    title:"組合總和 II" },
+  { id:"bk05", cat:"回溯",   pri:"必做", no:78,    title:"子集" },
+  { id:"bk06", cat:"回溯",   pri:"必做", no:90,    title:"子集 II" },
+  { id:"bk07", cat:"回溯",   pri:"必做", no:46,    title:"全排列" },
+  { id:"bk08", cat:"回溯",   pri:"必做", no:47,    title:"全排列 II" },
+  { id:"bk09", cat:"回溯",   pri:"必做", no:131,   title:"分割回文串" },
+  { id:"bk10", cat:"回溯",   pri:"必做", no:17,    title:"電話號碼字母組合" },
+  { id:"bk11", cat:"回溯",   pri:"必做", no:51,    title:"N 皇后" },
+  { id:"bk12", cat:"回溯",   pri:"選做", no:37,    title:"解數獨" },
+  { id:"bk13", cat:"回溯",   pri:"選做", no:93,    title:"復原 IP 地址" },
+  { id:"bk14", cat:"回溯",   pri:"選做", no:332,   title:"重新安排行程" },
+  // 貪婪
+  { id:"gr01", cat:"貪婪",   pri:"必做", no:53,    title:"最大子陣列和" },
+  { id:"gr02", cat:"貪婪",   pri:"必做", no:55,    title:"跳躍遊戲" },
+  { id:"gr03", cat:"貪婪",   pri:"必做", no:45,    title:"跳躍遊戲 II" },
+  { id:"gr04", cat:"貪婪",   pri:"必做", no:122,   title:"買賣股票最佳時機 II" },
+  { id:"gr05", cat:"貪婪",   pri:"必做", no:435,   title:"無重疊區間" },
+  { id:"gr06", cat:"貪婪",   pri:"必做", no:452,   title:"最少箭引爆氣球" },
+  { id:"gr07", cat:"貪婪",   pri:"必做", no:56,    title:"合併區間" },
+  { id:"gr08", cat:"貪婪",   pri:"必做", no:763,   title:"劃分字母區間" },
+  { id:"gr09", cat:"貪婪",   pri:"必做", no:134,   title:"加油站" },
+  { id:"gr10", cat:"貪婪",   pri:"必做", no:135,   title:"分發糖果" },
+  { id:"gr11", cat:"貪婪",   pri:"必做", no:376,   title:"擺動序列" },
+  { id:"gr12", cat:"貪婪",   pri:"選做", no:406,   title:"按身高重建隊列" },
+  { id:"gr13", cat:"貪婪",   pri:"選做", no:738,   title:"單調遞增數字" },
+  { id:"gr14", cat:"貪婪",   pri:"選做", no:968,   title:"監控二元樹" },
+  // 單調Stack
+  { id:"ms01", cat:"單調Stack", pri:"必做", no:739, title:"每日溫度" },
+  { id:"ms02", cat:"單調Stack", pri:"必做", no:496, title:"下一個更大元素 I" },
+  { id:"ms03", cat:"單調Stack", pri:"必做", no:42,  title:"接雨水 ⭐" },
+  { id:"ms04", cat:"單調Stack", pri:"必做", no:84,  title:"柱狀圖最大矩形 ⭐" },
+  { id:"ms05", cat:"單調Stack", pri:"選做", no:503, title:"下一個更大元素 II" },
+  // 動態規劃
+  { id:"dp01", cat:"動態規劃", pri:"必做", no:70,   title:"爬樓梯" },
+  { id:"dp02", cat:"動態規劃", pri:"必做", no:62,   title:"不同路徑" },
+  { id:"dp03", cat:"動態規劃", pri:"必做", no:343,  title:"整數拆分" },
+  { id:"dp04", cat:"動態規劃", pri:"必做", no:null, title:"01 背包（理論，必讀）" },
+  { id:"dp05", cat:"動態規劃", pri:"必做", no:416,  title:"分割等和子集" },
+  { id:"dp06", cat:"動態規劃", pri:"必做", no:494,  title:"目標和" },
+  { id:"dp07", cat:"動態規劃", pri:"必做", no:null, title:"完全背包（理論，必讀）" },
+  { id:"dp08", cat:"動態規劃", pri:"必做", no:518,  title:"零錢兌換 II" },
+  { id:"dp09", cat:"動態規劃", pri:"必做", no:322,  title:"零錢兌換" },
+  { id:"dp10", cat:"動態規劃", pri:"必做", no:279,  title:"完全平方數" },
+  { id:"dp11", cat:"動態規劃", pri:"必做", no:139,  title:"單詞拆分" },
+  { id:"dp12", cat:"動態規劃", pri:"必做", no:198,  title:"打家劫舍" },
+  { id:"dp13", cat:"動態規劃", pri:"必做", no:213,  title:"打家劫舍 II" },
+  { id:"dp14", cat:"動態規劃", pri:"必做", no:121,  title:"買賣股票最佳時機 I" },
+  { id:"dp15", cat:"動態規劃", pri:"必做", no:300,  title:"最長遞增子序列 LIS ⭐" },
+  { id:"dp16", cat:"動態規劃", pri:"必做", no:1143, title:"最長公共子序列 LCS ⭐" },
+  { id:"dp17", cat:"動態規劃", pri:"必做", no:72,   title:"編輯距離 ⭐" },
+  { id:"dp18", cat:"動態規劃", pri:"必做", no:647,  title:"回文子串" },
+  { id:"dp19", cat:"動態規劃", pri:"選做", no:63,   title:"不同路徑 II" },
+  { id:"dp20", cat:"動態規劃", pri:"選做", no:337,  title:"打家劫舍 III" },
+  { id:"dp21", cat:"動態規劃", pri:"選做", no:123,  title:"買賣股票 III" },
+  { id:"dp22", cat:"動態規劃", pri:"選做", no:309,  title:"含冷凍期股票" },
+  { id:"dp23", cat:"動態規劃", pri:"選做", no:516,  title:"最長回文子序列" },
+  { id:"dp24", cat:"動態規劃", pri:"選做", no:718,  title:"最長重複子陣列" },
+  // 圖論
+  { id:"gp01", cat:"圖論",   pri:"必做", no:200,   title:"島嶼數量（DFS）" },
+  { id:"gp02", cat:"圖論",   pri:"必做", no:200,   title:"島嶼數量（BFS）" },
+  { id:"gp03", cat:"圖論",   pri:"必做", no:695,   title:"最大島嶼面積" },
+  { id:"gp04", cat:"圖論",   pri:"必做", no:null,  title:"水流問題（多源 BFS）" },
+  { id:"gp05", cat:"圖論",   pri:"必做", no:null,  title:"並查集（理論，必讀）" },
+  { id:"gp06", cat:"圖論",   pri:"必做", no:684,   title:"冗餘連接" },
+  { id:"gp07", cat:"圖論",   pri:"必做", no:null,  title:"拓撲排序（課程安排類）" },
+  { id:"gp08", cat:"圖論",   pri:"必做", no:null,  title:"Dijkstra 堆優化版" },
+  { id:"gp09", cat:"圖論",   pri:"必做", no:127,   title:"字符串接龍（BFS）" },
+  { id:"gp10", cat:"圖論",   pri:"選做", no:685,   title:"冗餘連接 II" },
+  { id:"gp11", cat:"圖論",   pri:"選做", no:null,  title:"Bellman-Ford 基礎" },
+  { id:"gp12", cat:"圖論",   pri:"選做", no:null,  title:"Floyd 算法" },
+];
+
+const CAT_INFO = {
+  "二元樹":    { key:"bt", cls:"c-bt", fill:"fill-bt" },
+  "回溯":      { key:"bk", cls:"c-bk", fill:"fill-bk" },
+  "貪婪":      { key:"gr", cls:"c-gr", fill:"fill-gr" },
+  "單調Stack": { key:"ms", cls:"c-ms", fill:"fill-ms" },
+  "動態規劃":  { key:"dp", cls:"c-dp", fill:"fill-dp" },
+  "圖論":      { key:"gp", cls:"c-gp", fill:"fill-gp" },
+};
+const CATS = Object.keys(CAT_INFO);
+
+// ── State ──
+let completions = {};   // id → "M/D" string
+let notes = {};         // id → string
+let activeTab = "全部";
+let showOptional = true;
+let editId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem("algo-tracker-v1");
+    if (raw) { const d = JSON.parse(raw); completions = d.c||{}; notes = d.n||{}; }
+  } catch(e) {}
+}
+function save() {
+  localStorage.setItem("algo-tracker-v1", JSON.stringify({ c: completions, n: notes }));
+  const badge = document.getElementById("saveBadge");
+  badge.classList.add("show");
+  setTimeout(() => badge.classList.remove("show"), 1200);
+}
+
+// ── Render ──
+function render() {
+  renderPills();
+  renderList();
+  renderOverall();
+}
+
+function renderPills() {
+  const wrap = document.getElementById("catPills");
+  const tabs = ["全部", ...CATS];
+  wrap.innerHTML = tabs.map(t => `
+    <button class="pill ${t===activeTab?"active":""}" onclick="setTab('${t}')">${t}</button>
+  `).join("");
+}
+
+function renderOverall() {
+  const must = PROBLEMS.filter(p=>p.pri==="必做");
+  const done = must.filter(p=>completions[p.id]).length;
+  const pct = Math.round(done/must.length*100);
+  document.getElementById("overallFill").style.width = pct+"%";
+  document.getElementById("overallPct").textContent = done+"/"+must.length;
+}
+
+function renderList() {
+  const catsToShow = activeTab==="全部" ? CATS : [activeTab];
+  let html = "";
+  let totalShown = 0;
+
+  for (const cat of catsToShow) {
+    const info = CAT_INFO[cat];
+    const probs = PROBLEMS.filter(p => {
+      if (p.cat !== cat) return false;
+      if (!showOptional && p.pri==="選做") return false;
+      return true;
+    });
+    if (!probs.length) continue;
+    totalShown += probs.length;
+
+    const must = PROBLEMS.filter(p=>p.cat===cat&&p.pri==="必做");
+    const done = must.filter(p=>completions[p.id]).length;
+    const pct = Math.round(done/must.length*100);
+
+    html += `<div class="cat-section">`;
+    if (activeTab==="全部") {
+      html += `
+        <div class="cat-header">
+          <span class="cat-badge ${info.cls}">${cat}</span>
+          <div class="cat-prog">
+            <div class="cat-prog-track">
+              <div class="cat-prog-fill ${info.fill}" style="width:${pct}%"></div>
+            </div>
+            <div class="cat-prog-label">${done} / ${must.length} 必做完成</div>
+          </div>
+        </div>`;
+    }
+
+    for (const p of probs) {
+      const isDone = !!completions[p.id];
+      const hasNote = !!notes[p.id];
+      const isOpt = p.pri==="選做";
+      html += `
+        <div class="prob-row ${isDone?"done":""} ${isOpt?"optional":""}">
+          <button class="check-btn ${isDone?"checked":""}" onclick="toggle('${p.id}')">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 4l3 3 5-6" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="prob-info">
+            <div class="prob-title">
+              ${p.no?`<span class="prob-num">${p.no}.</span>`:""}
+              <span class="prob-title-text">${p.title}</span>
+            </div>
+            <div class="prob-meta">
+              ${isDone?`<span class="done-date">${completions[p.id]} 完成</span>`:""}
+              ${hasNote?`<span class="note-preview">${esc(notes[p.id])}</span>`:""}
+            </div>
+          </div>
+          ${isOpt?`<span class="opt-tag">選做</span>`:""}
+          <button class="note-btn ${hasNote?"has-note":""}" onclick="openNote('${p.id}')" title="筆記">
+            ${hasNote?"📝":"✎"}
+          </button>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById("list").innerHTML = html;
+  const must = PROBLEMS.filter(p=>p.pri==="必做"&&(activeTab==="全部"||p.cat===activeTab));
+  const done = must.filter(p=>completions[p.id]).length;
+  document.getElementById("countLabel").textContent = `顯示 ${totalShown} 題　必做 ${done}/${must.length}`;
+}
+
+function esc(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ── Actions ──
+window.setTab = function(t) { activeTab = t; render(); };
+
+window.toggle = function(id) {
+  if (completions[id]) delete completions[id];
+  else {
+    const now = new Date();
+    completions[id] = `${now.getMonth()+1}/${now.getDate()}`;
+  }
+  save(); render();
+};
+
+window.openNote = function(id) {
+  editId = id;
+  const p = PROBLEMS.find(x=>x.id===id);
+  document.getElementById("modalTitle").textContent = (p.no ? p.no+". " : "") + p.title;
+  document.getElementById("modalTextarea").value = notes[id]||"";
+  document.getElementById("modalBackdrop").classList.add("open");
+  setTimeout(()=>document.getElementById("modalTextarea").focus(),200);
+};
+
+document.getElementById("btnSave").onclick = function() {
+  const val = document.getElementById("modalTextarea").value.trim();
+  if (val) notes[editId] = val; else delete notes[editId];
+  editId = null;
+  document.getElementById("modalBackdrop").classList.remove("open");
+  save(); render();
+};
+document.getElementById("btnCancel").onclick = function() {
+  editId = null;
+  document.getElementById("modalBackdrop").classList.remove("open");
+};
+document.getElementById("modalBackdrop").onclick = function(e) {
+  if (e.target === this) document.getElementById("btnCancel").click();
+};
+
+document.getElementById("optToggle").onclick = function() {
+  showOptional = !showOptional;
+  this.textContent = showOptional ? "▲ 隱藏選做" : "▼ 顯示選做";
+  this.classList.toggle("on", showOptional);
+  render();
+};
+
+// ── Init ──
+load();
+render();
+</script>
+</body>
+</html>
